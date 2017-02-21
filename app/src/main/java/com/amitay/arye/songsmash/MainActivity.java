@@ -23,11 +23,17 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.daimajia.swipe.SwipeLayout;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -37,6 +43,7 @@ public class MainActivity extends AppCompatActivity
     private Toolbar toolbar;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
+    private SwipeLayout swipeLayout;
 
     //Class members
     private SQLiteDatabase mSongSmashDb;
@@ -56,6 +63,8 @@ public class MainActivity extends AppCompatActivity
 
         mCursorAdapter = new SongsCursorAdapter(this, queryDb(""));
 
+        //SwipeActionAdapter
+
         listSongsList.setAdapter(mCursorAdapter);
 
         listSongsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -72,13 +81,93 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        checkForIncomingIntent();
+
         Log.d(TAG, "SongSmash created");
+    }
+
+    private void checkForIncomingIntent() {
+        // Get intent, action and MIME type
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if ("text/plain".equals(type)) {
+                handleSendText(intent); // Handle text being sent
+            }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
+            if (type.startsWith("image/")) {
+                //handleSendMultipleImages(intent); // Handle multiple images being sent
+            }
+        }
+    }
+
+    private void handleSendText(Intent intent) {
+        String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (sharedText != null) {
+            Log.d(TAG, "Received text: " + sharedText);
+
+            Pattern shazamPattern = Pattern.compile("(I used Shazam to discover)(.*)(https://shz.am/.*)");
+            Matcher match = shazamPattern.matcher(sharedText);
+
+            if(match.matches()){
+                Log.d(TAG, "Song name is: " + match.group(2));
+                insertNewSong(match.group(2));
+
+                mCursorAdapter.changeCursor(queryDb(""));
+                //Remove the data to avoid re insertion in next time
+                intent.removeExtra(Intent.EXTRA_TEXT);
+            }
+            else
+                Log.d(TAG, "Match not found");
+        }
     }
 
     /*
     * Initialize UI members
     * */
     private void initializeUI() {
+        swipeLayout = (SwipeLayout) findViewById(R.id.content_main);
+
+        //set show mode.
+        swipeLayout.setShowMode(SwipeLayout.ShowMode.LayDown);
+
+        //add drag edge.(If the BottomView has 'layout_gravity' attribute, this line is unnecessary)
+        //swipeLayout.
+
+        swipeLayout.addSwipeListener(new SwipeLayout.SwipeListener() {
+            @Override
+            public void onStartOpen(SwipeLayout swipeLayout) {
+                Log.d(TAG, "onStartOpen");
+            }
+
+            @Override
+            public void onOpen(SwipeLayout swipeLayout) {
+                Log.d(TAG, "onOpen");
+            }
+
+            @Override
+            public void onStartClose(SwipeLayout swipeLayout) {
+                Log.d(TAG, "onStartClose");
+            }
+
+            @Override
+            public void onClose(SwipeLayout swipeLayout) {
+                Log.d(TAG, "onClose");
+            }
+
+            @Override
+            public void onUpdate(SwipeLayout swipeLayout, int i, int i1) {
+                Log.d(TAG, "onUpdate");
+            }
+
+            @Override
+            public void onHandRelease(SwipeLayout swipeLayout, float v, float v1) {
+                Log.d(TAG, "onHandRelease");
+            }
+        });
+
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -160,7 +249,6 @@ public class MainActivity extends AppCompatActivity
 
         if (id == R.id.nav_import) {
             showFileChooser();
-
         } else if (id == R.id.nav_export) {
 
         } else if (id == R.id.nav_deleteDb) {
@@ -217,7 +305,12 @@ public class MainActivity extends AppCompatActivity
         Uri uri = data.getData();
         Log.d(TAG, "File Uri: " + uri.toString());
         // Get the path
-        String path = uri.getPath();//FileUtils.getPath(this, uri);
+        String path = CsvHelper.getFilePath(uri);
+
+        if(path == null){
+            Log.d(TAG, "File Path is null");
+            return;
+        }
         Log.d(TAG, "File Path: " + path);
 
         try{
@@ -225,14 +318,9 @@ public class MainActivity extends AppCompatActivity
             List<String[]> csvData = CsvHelper.readCsv(csvInputStream);
 
             for(String[] songData : csvData){
-                ContentValues values = new ContentValues();
                 String songName = songData[0].trim();
-                values.put(DbConstants.Songs.SONG_NAME, songName);
-                values.put(DbConstants.Songs.LIKED, false);
-                //insert returning an ID - no use for now
-                long id = mSongSmashDb.insert(DbConstants.Songs.TABLE_NAME, null, values);
-                if (id == -1)
-                    Log.d(TAG, "DB insertion error on value [" + songName + "]");
+
+                insertNewSong(songName);
             }
 
             mCursorAdapter.changeCursor(queryDb(""));
@@ -242,5 +330,15 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "File not found : " + ex.toString());
         }
 
+    }
+
+    private void insertNewSong(String songName) {
+        ContentValues values = new ContentValues();
+        values.put(DbConstants.Songs.SONG_NAME, songName);
+        values.put(DbConstants.Songs.LIKED, false);
+        //insert returning an ID - no use for now
+        long id = mSongSmashDb.insert(DbConstants.Songs.TABLE_NAME, null, values);
+        if (id == -1)
+            Log.d(TAG, "DB insertion error on value [" + songName + "]");
     }
 }

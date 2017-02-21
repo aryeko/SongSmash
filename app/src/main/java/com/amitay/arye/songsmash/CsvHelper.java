@@ -1,10 +1,15 @@
 package com.amitay.arye.songsmash;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,4 +67,16 @@ public class CsvHelper {
     }
 
     */
+
+    public static String getFilePath(Uri uri) {
+        if ("content".equalsIgnoreCase(uri.getScheme())) {
+            //will return:  primary:<file path inside the sdcard>
+            return "/sdcard/" + uri.getLastPathSegment().split(":")[1];
+        }
+        if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+
+        return null;
+    }
 }
