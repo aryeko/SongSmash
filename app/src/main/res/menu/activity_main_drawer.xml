@@ -3,33 +3,37 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_menu_camera"
+            android:id="@+id/nav_import"
+            android:icon="@android:drawable/stat_sys_download"
             android:title="Import" />
         <item
-            android:id="@+id/nav_gallery"
+            android:id="@+id/nav_export"
             android:icon="@drawable/ic_menu_gallery"
-            android:title="Gallery" />
+            android:title="Export" />
         <item
-            android:id="@+id/nav_slideshow"
+            android:id="@+id/nav_deleteDb"
             android:icon="@drawable/ic_menu_slideshow"
-            android:title="Slideshow" />
+            android:title="Delete database" />
         <item
             android:id="@+id/nav_manage"
             android:icon="@drawable/ic_menu_manage"
             android:title="Tools" />
     </group>
 
-    <item android:title="Communicate">
+    <item android:title="Filters">
         <menu>
             <item
-                android:id="@+id/nav_share"
+                android:id="@+id/filter_all"
                 android:icon="@drawable/ic_menu_share"
-                android:title="Share" />
+                android:title="All songs" />
             <item
-                android:id="@+id/nav_send"
+            android:id="@+id/filter_liked"
+            android:icon="@drawable/ic_menu_send"
+            android:title="Liked songs" />
+            <item
+                android:id="@+id/filter_unliked"
                 android:icon="@drawable/ic_menu_send"
-                android:title="Send" />
+                android:title="Unliked songs" />
         </menu>
     </item>
 
