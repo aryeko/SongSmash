@@ -1,20 +1,22 @@
 package com.amitay.arye.songsmash;
 
+import android.Manifest;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,7 +25,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.daimajia.swipe.SwipeLayout;
+import com.wdullaer.swipeactionadapter.SwipeActionAdapter;
+import com.wdullaer.swipeactionadapter.SwipeDirection;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,29 +46,74 @@ public class MainActivity extends AppCompatActivity
     private Toolbar toolbar;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
-    private SwipeLayout swipeLayout;
 
     //Class members
     private SQLiteDatabase mSongSmashDb;
-    private SongsCursorAdapter mCursorAdapter;
+    private SongsCursorAdapter mSongsAdapter;
+    private SwipeActionAdapter mSwipeActionAdapter;
 
     private final int FILE_SELECT_CODE = 1;
-    private final String TAG = "SongSmashTag";
+    private final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 2;
+    private final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 3;
 
+
+    public static final String TAG = "SongSmashTag";
+
+    //TODO: Ask for permissions!!
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initializeUI();
-
         mSongSmashDb = new DBHelper(this).getReadableDatabase();
 
-        mCursorAdapter = new SongsCursorAdapter(this, queryDb(""));
+        initializeUI();
 
-        //SwipeActionAdapter
+        initializeSwipableListView();
 
-        listSongsList.setAdapter(mCursorAdapter);
+        checkForIncomingIntent();
+
+        Log.d(TAG, "SongSmash created");
+    }
+
+    private void initializeSwipableListView() {
+        mSongsAdapter = new SongsCursorAdapter(this, queryDb(""));
+
+        mSwipeActionAdapter = new SwipeActionAdapter(mSongsAdapter);
+
+        mSwipeActionAdapter.setSwipeActionListener(new SwipeActionAdapter.SwipeActionListener() {
+            @Override
+            public boolean hasActions(int position, SwipeDirection direction) {
+                return true;
+            }
+
+            @Override
+            public boolean shouldDismiss(int position, SwipeDirection direction) {
+                return false;
+            }
+
+            @Override
+            public void onSwipe(int[] position, SwipeDirection[] direction) {
+                Log.d(MainActivity.TAG, "onSwipe!!");
+                for (int pos: position) {
+                    Log.d(MainActivity.TAG, "Position: " + pos);
+                }
+                for (SwipeDirection dir: direction) {
+                    Log.d(MainActivity.TAG, "SwipeDirection: " + dir );
+                }
+            }
+        });
+
+
+        mSwipeActionAdapter
+                .setDimBackgrounds(true)
+                .setListView(listSongsList)
+                .addBackground(SwipeDirection.DIRECTION_FAR_LEFT, R.layout.row_bg_left)
+                .addBackground(SwipeDirection.DIRECTION_NORMAL_LEFT, R.layout.row_bg_left)
+                .addBackground(SwipeDirection.DIRECTION_FAR_RIGHT, R.layout.row_bg_right)
+                .addBackground(SwipeDirection.DIRECTION_NORMAL_RIGHT,R.layout.row_bg_right);
+
+        listSongsList.setAdapter(mSwipeActionAdapter);
 
         listSongsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -80,10 +128,73 @@ public class MainActivity extends AppCompatActivity
                 startActivity(intent);
             }
         });
+    }
 
-        checkForIncomingIntent();
+    private void askForPermissionsIfNeeded(String permission, int requestId) {
+        if (ContextCompat.checkSelfPermission(this,
+                permission)
+                != PackageManager.PERMISSION_GRANTED) {
 
-        Log.d(TAG, "SongSmash created");
+            Log.d(TAG, "Asking for "+permission+" permission");
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    permission)) {
+
+                // Show an explanation to the user asynchronously -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{permission},
+                        requestId);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
+                    // If request is cancelled, the result arrays are empty.
+                    if (grantResults.length > 0
+                            && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                        Log.d(TAG, "Read permissions granted!!");
+                        // permission was granted, yay! Do the
+                        // contacts-related task you need to do.
+
+                    } else {
+                        Log.d(TAG, "Read permissions denied :(");
+                        // permission denied, boo! Disable the
+                        // functionality that depends on this permission.
+                    }
+                    return;
+            }
+            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Write permissions granted!!");
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                } else {
+                    Log.d(TAG, "Write permissions denied :(");
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }        }
     }
 
     private void checkForIncomingIntent() {
@@ -115,7 +226,7 @@ public class MainActivity extends AppCompatActivity
                 Log.d(TAG, "Song name is: " + match.group(2));
                 insertNewSong(match.group(2));
 
-                mCursorAdapter.changeCursor(queryDb(""));
+                mSongsAdapter.changeCursor(queryDb(""));
                 //Remove the data to avoid re insertion in next time
                 intent.removeExtra(Intent.EXTRA_TEXT);
             }
@@ -128,46 +239,6 @@ public class MainActivity extends AppCompatActivity
     * Initialize UI members
     * */
     private void initializeUI() {
-        swipeLayout = (SwipeLayout) findViewById(R.id.content_main);
-
-        //set show mode.
-        swipeLayout.setShowMode(SwipeLayout.ShowMode.LayDown);
-
-        //add drag edge.(If the BottomView has 'layout_gravity' attribute, this line is unnecessary)
-        //swipeLayout.
-
-        swipeLayout.addSwipeListener(new SwipeLayout.SwipeListener() {
-            @Override
-            public void onStartOpen(SwipeLayout swipeLayout) {
-                Log.d(TAG, "onStartOpen");
-            }
-
-            @Override
-            public void onOpen(SwipeLayout swipeLayout) {
-                Log.d(TAG, "onOpen");
-            }
-
-            @Override
-            public void onStartClose(SwipeLayout swipeLayout) {
-                Log.d(TAG, "onStartClose");
-            }
-
-            @Override
-            public void onClose(SwipeLayout swipeLayout) {
-                Log.d(TAG, "onClose");
-            }
-
-            @Override
-            public void onUpdate(SwipeLayout swipeLayout, int i, int i1) {
-                Log.d(TAG, "onUpdate");
-            }
-
-            @Override
-            public void onHandRelease(SwipeLayout swipeLayout, float v, float v1) {
-                Log.d(TAG, "onHandRelease");
-            }
-        });
-
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -248,9 +319,10 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_import) {
+            askForPermissionsIfNeeded(Manifest.permission.READ_EXTERNAL_STORAGE, MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
             showFileChooser();
         } else if (id == R.id.nav_export) {
-
+            askForPermissionsIfNeeded(Manifest.permission.WRITE_EXTERNAL_STORAGE, MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
         } else if (id == R.id.nav_deleteDb) {
 
         } else if (id == R.id.nav_manage) {
@@ -323,7 +395,7 @@ public class MainActivity extends AppCompatActivity
                 insertNewSong(songName);
             }
 
-            mCursorAdapter.changeCursor(queryDb(""));
+            mSongsAdapter.changeCursor(queryDb(""));
 
         }
         catch (FileNotFoundException ex){
@@ -335,7 +407,7 @@ public class MainActivity extends AppCompatActivity
     private void insertNewSong(String songName) {
         ContentValues values = new ContentValues();
         values.put(DbConstants.Songs.SONG_NAME, songName);
-        values.put(DbConstants.Songs.LIKED, false);
+        values.put(DbConstants.Songs.LIKED, String.valueOf(DbConstants.SongStatus.Unknown));
         //insert returning an ID - no use for now
         long id = mSongSmashDb.insert(DbConstants.Songs.TABLE_NAME, null, values);
         if (id == -1)

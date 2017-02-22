@@ -16,7 +16,7 @@ public class DBHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + DbConstants.Songs.TABLE_NAME + "(" +
                     DbConstants.Songs._ID +            " INTEGER PRIMARY KEY," +
                     DbConstants.Songs.SONG_NAME +      " TEXT," +
-                    DbConstants.Songs.LIKED +          " BOOLEAN" +
+                    DbConstants.Songs.LIKED +          " TEXT" +
                     ");";
 
     private static final String SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS " + DbConstants.Songs.TABLE_NAME;

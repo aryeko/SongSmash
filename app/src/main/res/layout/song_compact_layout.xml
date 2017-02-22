@@ -5,14 +5,17 @@
     android:layout_height="match_parent"
     android:weightSum="1">
 
+
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:id="@+id/txtSongName"
         android:minHeight="48dp"
         android:gravity="center_vertical"
         android:textSize="20sp"/>
+
+
     <!--
     TODO:
     Add images of synced people with their selections in the bottom line

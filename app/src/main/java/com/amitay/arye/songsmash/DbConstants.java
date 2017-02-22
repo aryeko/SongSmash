@@ -27,4 +27,12 @@ final class DbConstants {
         public static final String TABLE_NAME = "SyncedUsersLikedSongsTable";
         public static final String USER_NAME = "UserName";
     }
+
+    public enum SongStatus{
+        Unknown,
+
+        Liked,
+
+        Unlkied
+    }
 }

@@ -29,5 +29,5 @@ dependencies {
     compile 'com.android.support:design:25.1.0'
     testCompile 'junit:junit:4.12'
     compile 'com.wdullaer:swipeactionadapter:2.0.0'
-    compile files('libs/AndroidSwipeLayout-v1.1.8.jar')
+    compile files('libs/swipeactionadapter-2.0.0.jar')
 }

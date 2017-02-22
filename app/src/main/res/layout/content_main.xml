@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.daimajia.swipe.SwipeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
 xmlns:app="http://schemas.android.com/apk/res-auto"
 xmlns:tools="http://schemas.android.com/tools"
 android:id="@+id/content_main"
@@ -13,23 +13,9 @@ app:layout_behavior="@string/appbar_scrolling_view_behavior"
 tools:context="com.amitay.arye.songsmash.MainActivity"
 tools:showIn="@layout/app_bar_main">
 
-<!-- Bottom View Start-->
-<LinearLayout
-    android:orientation="vertical"
-    android:background="#66ddff00"
-    android:id="@+id/bottom_wrapper"
-    android:layout_width="160dp"
-    android:weightSum="1"
-    android:layout_height="match_parent">
-    <!--What you want to show-->
-</LinearLayout>
-<!-- Bottom View End-->
-
-<!-- Surface View Start -->
 <ListView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/listSongsList" />
-<!-- Surface View End -->
 
-</com.daimajia.swipe.SwipeLayout>
+</RelativeLayout>
