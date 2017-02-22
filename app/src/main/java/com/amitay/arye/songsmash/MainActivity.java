@@ -18,7 +18,6 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -31,12 +30,12 @@ import com.wdullaer.swipeactionadapter.SwipeDirection;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -52,14 +51,16 @@ public class MainActivity extends AppCompatActivity
     private SongsCursorAdapter mSongsAdapter;
     private SwipeActionAdapter mSwipeActionAdapter;
 
+    //Consts
     private final int FILE_SELECT_CODE = 1;
     private final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 2;
     private final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 3;
 
+    //The applied filter on the list view
+    private DbConstants.SongStatus appliedFilter = DbConstants.SongStatus.Unknown;
 
     public static final String TAG = "SongSmashTag";
 
-    //TODO: Ask for permissions!!
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,11 +74,14 @@ public class MainActivity extends AppCompatActivity
 
         checkForIncomingIntent();
 
-        Log.d(TAG, "SongSmash created");
+        Log.d(TAG, "SongSmash created successfully");
     }
 
+    /**
+     * Initialize the list view with thw Cursor adapter and the Swipe Action adapter
+     * */
     private void initializeSwipableListView() {
-        mSongsAdapter = new SongsCursorAdapter(this, queryDb(""));
+        mSongsAdapter = new SongsCursorAdapter(this, queryDb("", appliedFilter));
 
         mSwipeActionAdapter = new SwipeActionAdapter(mSongsAdapter);
 
@@ -94,16 +98,34 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onSwipe(int[] position, SwipeDirection[] direction) {
-                Log.d(MainActivity.TAG, "onSwipe!!");
-                for (int pos: position) {
-                    Log.d(MainActivity.TAG, "Position: " + pos);
+
+                View view = getViewByPosition(position[0]);
+                String songName = ((TextView) view.findViewById(R.id.txtSongName)).getText().toString();
+
+                if(     direction[0] == SwipeDirection.DIRECTION_FAR_LEFT ||
+                        direction[0] == SwipeDirection.DIRECTION_NORMAL_LEFT ){
+                    updateSongStatus(songName, DbConstants.SongStatus.Unlkied);
                 }
-                for (SwipeDirection dir: direction) {
-                    Log.d(MainActivity.TAG, "SwipeDirection: " + dir );
+                else if(direction[0] == SwipeDirection.DIRECTION_FAR_RIGHT ||
+                        direction[0] == SwipeDirection.DIRECTION_NORMAL_RIGHT ){
+                    updateSongStatus(songName, DbConstants.SongStatus.Liked);
+                }
+
+                mSongsAdapter.changeCursor(queryDb("", appliedFilter));
+            }
+
+            private View getViewByPosition(int pos) {
+                final int firstListItemPosition = listSongsList.getFirstVisiblePosition();
+                final int lastListItemPosition = firstListItemPosition + listSongsList.getChildCount() - 1;
+
+                if (pos < firstListItemPosition || pos > lastListItemPosition ) {
+                    return listSongsList.getAdapter().getView(pos, null, listSongsList);
+                } else {
+                    final int childIndex = pos - firstListItemPosition;
+                    return listSongsList.getChildAt(childIndex);
                 }
             }
         });
-
 
         mSwipeActionAdapter
                 .setDimBackgrounds(true)
@@ -119,17 +141,32 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String songName = ((TextView) view.findViewById(R.id.txtSongName)).getText().toString();
-                Log.d(TAG, "GOTO YouTube with search: [" + songName + "]");
-
-                Intent intent = new Intent(Intent.ACTION_SEARCH);
-                intent.setPackage("com.google.android.youtube");
-                intent.putExtra("query", songName);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
+                searchInYouTube(songName);
             }
         });
     }
 
+    /**
+     * Starting YouTube application using Intent with search query for the given song name
+     *
+     * @param songName the song name to search in YouTube
+     * */
+    private void searchInYouTube(String songName) {
+        Log.d(TAG, "GOTO YouTube with search: [" + songName + "]");
+
+        Intent intent = new Intent(Intent.ACTION_SEARCH);
+        intent.setPackage("com.google.android.youtube");
+        intent.putExtra("query", songName);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
+    /**
+     * Asks for permissions if not granted
+     *
+     * @param permission the permission to ask
+     * @param requestId The request ID - to be used in permission request result
+     * */
     private void askForPermissionsIfNeeded(String permission, int requestId) {
         if (ContextCompat.checkSelfPermission(this,
                 permission)
@@ -137,7 +174,6 @@ public class MainActivity extends AppCompatActivity
 
             Log.d(TAG, "Asking for "+permission+" permission");
 
-            // Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     permission)) {
 
@@ -152,69 +188,56 @@ public class MainActivity extends AppCompatActivity
                 ActivityCompat.requestPermissions(this,
                         new String[]{permission},
                         requestId);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
             }
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
-                    // If request is cancelled, the result arrays are empty.
                     if (grantResults.length > 0
                             && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
                         Log.d(TAG, "Read permissions granted!!");
-                        // permission was granted, yay! Do the
-                        // contacts-related task you need to do.
 
                     } else {
                         Log.d(TAG, "Read permissions denied :(");
-                        // permission denied, boo! Disable the
-                        // functionality that depends on this permission.
                     }
                     return;
             }
             case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Log.d(TAG, "Write permissions granted!!");
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-
                 } else {
                     Log.d(TAG, "Write permissions denied :(");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
                 }
                 return;
-            }        }
+            }
+        }
     }
 
+    /**
+     * Checks if the application has been started from other intent.
+     * Used to catch Shazam share
+     * */
     private void checkForIncomingIntent() {
-        // Get intent, action and MIME type
         Intent intent = getIntent();
         String action = intent.getAction();
         String type = intent.getType();
 
         if (Intent.ACTION_SEND.equals(action) && type != null) {
             if ("text/plain".equals(type)) {
-                handleSendText(intent); // Handle text being sent
-            }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
-            if (type.startsWith("image/")) {
-                //handleSendMultipleImages(intent); // Handle multiple images being sent
+                handleReceivedText(intent);
             }
         }
     }
 
-    private void handleSendText(Intent intent) {
+    /**
+     * Handling received text in intent:
+     * If the Intent received from Shazam, the received song will be added to the database
+     * */
+    private void handleReceivedText(Intent intent) {
         String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (sharedText != null) {
             Log.d(TAG, "Received text: " + sharedText);
@@ -226,18 +249,18 @@ public class MainActivity extends AppCompatActivity
                 Log.d(TAG, "Song name is: " + match.group(2));
                 insertNewSong(match.group(2));
 
-                mSongsAdapter.changeCursor(queryDb(""));
+                mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.NotSet));
                 //Remove the data to avoid re insertion in next time
                 intent.removeExtra(Intent.EXTRA_TEXT);
             }
             else
-                Log.d(TAG, "Match not found");
+                Log.d(TAG, "Match not found - Does the intent received from Shazam?");
         }
     }
 
-    /*
-    * Initialize UI members
-    * */
+    /**
+     * Initializing the UI members
+     * */
     private void initializeUI() {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -245,7 +268,7 @@ public class MainActivity extends AppCompatActivity
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        //drawerLayout.setDrawerListener(toggle);
+
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -255,19 +278,28 @@ public class MainActivity extends AppCompatActivity
         listSongsList = (ListView) findViewById(R.id.listSongsList);
     }
 
-    /*
-    * query the DB and get cursor.
-    * getting name and phone in order to filter by them (contains),
-    * if using an empty string - not filtering
-    * */
-    private Cursor queryDb(String songName) {
-
+    /**
+     * query the DB and get cursor with the query result.
+     *
+     * @param songName song name to filter from the DB - use empty string to get all
+     * @param songStatus song status to filter from the DB - use SongStatus.Unknown to get all
+     *
+     * @return Cursor with the query result
+     *
+     * */
+    private Cursor queryDb(String songName, DbConstants.SongStatus songStatus) {
+        Log.d(TAG, "Query DB with params: song name [" + songName + "], song status [" + String.valueOf(songStatus) + "]");
         String where = null;
         String[] whereValues = null;
 
         if (!songName.isEmpty()) {
             where = DbConstants.Songs.SONG_NAME + " LIKE ?";
             whereValues = new String[]{"%" + songName + "%"};
+        }
+
+        if(songStatus != DbConstants.SongStatus.Unknown){
+            where = DbConstants.Songs.LIKED + " LIKE ?";
+            whereValues = new String[]{"%" + String.valueOf(songStatus) + "%"};
         }
 
         return mSongSmashDb.query(
@@ -291,31 +323,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
         int id = item.getItemId();
 
         if (id == R.id.nav_import) {
@@ -323,16 +331,22 @@ public class MainActivity extends AppCompatActivity
             showFileChooser();
         } else if (id == R.id.nav_export) {
             askForPermissionsIfNeeded(Manifest.permission.WRITE_EXTERNAL_STORAGE, MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
-        } else if (id == R.id.nav_deleteDb) {
-
-        } else if (id == R.id.nav_manage) {
-
+            String exportedFilePath = exportDbToCsv();
+            if(exportedFilePath != null){
+                sentMailWithAttachment(exportedFilePath);
+            }
         } else if (id == R.id.filter_all) {
-
+            appliedFilter = DbConstants.SongStatus.Unknown;
+            mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.Unknown));
+        } else if (id == R.id.filter_notSet) {
+            appliedFilter = DbConstants.SongStatus.NotSet;
+            mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.NotSet));
         } else if (id == R.id.filter_liked) {
-
+            appliedFilter = DbConstants.SongStatus.Liked;
+            mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.Liked));
         } else if (id == R.id.filter_unliked) {
-
+            appliedFilter = DbConstants.SongStatus.Unlkied;
+            mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.Unlkied));
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -340,6 +354,51 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    /**
+     * Starting mail application in send page with an attachment using Intent
+     *
+     * @param attachedFilePath the path to the attached file
+     * */
+    private void sentMailWithAttachment(String attachedFilePath) {
+        Uri path = Uri.fromFile(new File(attachedFilePath));
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("vnd.android.cursor.dir/email");
+        String to[] = { getString(R.string.DjExampleEmail) };
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, to);
+        emailIntent.putExtra(Intent.EXTRA_STREAM, path);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.mailSubject));
+        startActivity(Intent.createChooser(emailIntent , getString(R.string.emailShareTitle)));
+    }
+
+    /**
+     * Exports current database content to CSV file.
+     *
+     * @return path to the exported CSV file
+     * */
+    private String exportDbToCsv() {
+        String exportedFilePath = null;
+        Cursor cursor = queryDb("", DbConstants.SongStatus.Unknown);
+        List<String[]> list = new ArrayList<>();
+
+        cursor.moveToFirst();
+        do {
+            list.add(new String[] {
+                    cursor.getString(cursor.getColumnIndex(DbConstants.Songs.SONG_NAME)),
+                    cursor.getString(cursor.getColumnIndex(DbConstants.Songs.LIKED))
+            });
+        }while (cursor.moveToNext());
+
+        try {
+             exportedFilePath = CsvHelper.writeToCsv(list, null);
+        } catch (IOException ex) {
+            Log.d(TAG, "Failed to export csv : " + ex.toString());
+        }
+        return exportedFilePath;
+    }
+
+    /**
+     * Starting file chooser application using Intent
+     * */
     private void showFileChooser() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
@@ -347,11 +406,10 @@ public class MainActivity extends AppCompatActivity
 
         try {
             startActivityForResult(
-                    Intent.createChooser(intent, "Select a File to import"),
+                    Intent.createChooser(intent, getString(R.string.selectFileHeader)),
                     FILE_SELECT_CODE);
         } catch (android.content.ActivityNotFoundException ex) {
-            // Potentially direct the user to the Market with a Dialog
-            Toast.makeText(this, "Please install a File Manager.",
+            Toast.makeText(this, R.string.NoFileManagerMsg,
                     Toast.LENGTH_SHORT).show();
         }
     }
@@ -361,10 +419,10 @@ public class MainActivity extends AppCompatActivity
         switch (requestCode) {
             case FILE_SELECT_CODE:
                 if (resultCode == RESULT_OK) {
-                    importSongsFromIntent(data);
+                    importSongsFromFileChooserIntent(data);
                 }
                 else{
-                    Toast.makeText(this, "No file selected.",
+                    Toast.makeText(this, R.string.noFileSelected,
                             Toast.LENGTH_SHORT).show();
                 }
                 break;
@@ -372,11 +430,12 @@ public class MainActivity extends AppCompatActivity
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void importSongsFromIntent(Intent data){
-        // Get the Uri of the selected file
+    /**
+     * Imports the songs from the selected file that selected in the file chooser into the database
+     * */
+    private void importSongsFromFileChooserIntent(Intent data){
         Uri uri = data.getData();
         Log.d(TAG, "File Uri: " + uri.toString());
-        // Get the path
         String path = CsvHelper.getFilePath(uri);
 
         if(path == null){
@@ -390,27 +449,49 @@ public class MainActivity extends AppCompatActivity
             List<String[]> csvData = CsvHelper.readCsv(csvInputStream);
 
             for(String[] songData : csvData){
-                String songName = songData[0].trim();
-
-                insertNewSong(songName);
+                insertNewSong(songData[0].trim());
             }
 
-            mSongsAdapter.changeCursor(queryDb(""));
-
+            mSongsAdapter.changeCursor(queryDb("", DbConstants.SongStatus.NotSet));
         }
         catch (FileNotFoundException ex){
             Log.d(TAG, "File not found : " + ex.toString());
         }
-
     }
 
+    /**
+     * Inserts new song to the database with status SongStatus.NotSet
+     * */
     private void insertNewSong(String songName) {
         ContentValues values = new ContentValues();
         values.put(DbConstants.Songs.SONG_NAME, songName);
-        values.put(DbConstants.Songs.LIKED, String.valueOf(DbConstants.SongStatus.Unknown));
-        //insert returning an ID - no use for now
+        values.put(DbConstants.Songs.LIKED, String.valueOf(DbConstants.SongStatus.NotSet));
+
         long id = mSongSmashDb.insert(DbConstants.Songs.TABLE_NAME, null, values);
         if (id == -1)
             Log.d(TAG, "DB insertion error on value [" + songName + "]");
+    }
+
+    /**
+     * Updates song status - overrides the current status
+     *
+     * @param songName The name of the song to be updated
+     * @param newStatus The new status to set to the song
+     * */
+    private void updateSongStatus(String songName, DbConstants.SongStatus newStatus){
+        Log.d(TAG, "Updating song [" + songName + "] status to: [" + String.valueOf(newStatus) + "]");
+        ContentValues values = new ContentValues();
+        values.put(DbConstants.Songs.LIKED, String.valueOf(newStatus));
+
+        String where = DbConstants.Songs.SONG_NAME + " LIKE ?";
+        String[] whereValues = new String[]{"%" + songName + "%"};
+
+        int numOfAffectedRows = mSongSmashDb.update(
+                DbConstants.Songs.TABLE_NAME,
+                values,
+                where,
+                whereValues);
+
+        Log.d(TAG, "Number of affected rows: [" + numOfAffectedRows + "]");
     }
 }

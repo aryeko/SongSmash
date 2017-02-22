@@ -8,6 +8,8 @@ import java.util.List;
 
 /**
  * Created by A&A on 2/21/2017.
+ *
+ * This class extents SQLiteOpenHelper with SongSmash application specific requirements
  */
 
 public class DBHelper extends SQLiteOpenHelper {

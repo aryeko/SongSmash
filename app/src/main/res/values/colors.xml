@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorPrimary">#4e2064</color>
+    <color name="colorPrimaryDark">#451458</color>
     <color name="colorAccent">#FF4081</color>
-    <color name="colorRightSwipe">#00FF00</color>
-    <color name="colorLeftSwipe">#FF0000</color>
+    <color name="colorRightSwipe">#209e20</color>
+    <color name="colorLeftSwipe">#ae2f2f</color>
 </resources>

@@ -15,9 +15,4 @@
         android:gravity="center_vertical"
         android:textSize="20sp"/>
 
-
-    <!--
-    TODO:
-    Add images of synced people with their selections in the bottom line
-    -->
 </LinearLayout>

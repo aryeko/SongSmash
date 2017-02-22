@@ -1,8 +1,15 @@
 <resources>
-    <string name="app_name">SongSmash</string>
+    <string name="app_name">Song Smash</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Settings</string>
+    <string name="DjExampleEmail">DJ@gmail.com</string>
+    <string name="mailSubject">My summarized song list</string>
+    <string name="emailShareTitle">Send by mail</string>
+    <string name="selectFileHeader">Select a File to import</string>
+    <string name="NoFileManagerMsg">Please install a File Manager</string>
+    <string name="noFileSelected">No file selected</string>
+    <string name="just_pick_your_songs">Just pick your songs</string>
 </resources>

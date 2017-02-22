@@ -4,6 +4,8 @@ import android.provider.BaseColumns;
 
 /**
  * Created by JERLocal on 1/23/2017.
+ *
+ * This class contains the definitions of the tables in the local database
  */
 
 final class DbConstants {
@@ -11,25 +13,22 @@ final class DbConstants {
         throw new AssertionError("Can't create DbConstants class");
     }
 
-
+    /**
+     * Songs table
+     * */
     public static abstract class Songs implements BaseColumns {
         public static final String TABLE_NAME = "SongsTable";
         public static final String SONG_NAME = "SongName";
         public static final String LIKED = "Liked";
     }
 
-    public static abstract class SyncedUsers implements BaseColumns {
-        public static final String TABLE_NAME = "SyncedUsersTable";
-        public static final String USER_NAME = "UserName";
-    }
-
-    public static abstract class SyncedUsersLikedSongs implements BaseColumns {
-        public static final String TABLE_NAME = "SyncedUsersLikedSongsTable";
-        public static final String USER_NAME = "UserName";
-    }
-
+    /**
+     * Enum that represents song status - Unknown used for query all the data
+     * */
     public enum SongStatus{
         Unknown,
+
+        NotSet,
 
         Liked,
 
