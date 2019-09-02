@@ -1,6 +1,7 @@
 package com.amitay.arye.songsmash;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -8,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -73,6 +75,10 @@ public class MainActivity extends AppCompatActivity
         initializeSwipableListView();
 
         checkForIncomingIntent();
+
+        //Ignore URI exposure issues
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
 
         Log.d(TAG, "SongSmash created successfully");
     }
@@ -242,7 +248,7 @@ public class MainActivity extends AppCompatActivity
         if (sharedText != null) {
             Log.d(TAG, "Received text: " + sharedText);
 
-            Pattern shazamPattern = Pattern.compile("(I used Shazam to discover)(.*)(https://shz.am/.*)");
+            Pattern shazamPattern = Pattern.compile("(I used Shazam to discover)(.*)(https://www.sh.*)");
             Matcher match = shazamPattern.matcher(sharedText);
 
             if(match.matches()){
@@ -362,12 +368,18 @@ public class MainActivity extends AppCompatActivity
     private void sentMailWithAttachment(String attachedFilePath) {
         Uri path = Uri.fromFile(new File(attachedFilePath));
         Intent emailIntent = new Intent(Intent.ACTION_SEND);
-        emailIntent.setType("vnd.android.cursor.dir/email");
+        emailIntent.setType("plain/text");
         String to[] = { getString(R.string.DjExampleEmail) };
         emailIntent.putExtra(Intent.EXTRA_EMAIL, to);
-        emailIntent.putExtra(Intent.EXTRA_STREAM, path);
         emailIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.mailSubject));
-        startActivity(Intent.createChooser(emailIntent , getString(R.string.emailShareTitle)));
+        emailIntent.putExtra(Intent.EXTRA_STREAM, path);
+        try{
+            startActivity(Intent.createChooser(emailIntent , getString(R.string.emailShareTitle)));
+        }
+        catch (Throwable t)
+        {
+            Toast.makeText(this, "Request failed try again: " + t.toString(),Toast.LENGTH_LONG).show();
+        }
     }
 
     /**
